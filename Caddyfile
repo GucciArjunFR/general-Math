@@ -1,0 +1,4 @@
+# Replace with your domain. Caddy gets and renews the HTTPS certificate automatically.
+proxy.example.com {
+	reverse_proxy localhost:8080
+}

@@ -1,0 +1,17 @@
+[Unit]
+Description=General Mathematics web proxy
+After=network.target
+
+[Service]
+Type=simple
+User=gm
+WorkingDirectory=/opt/general-mathematics
+Environment=PORT=8080
+Environment=HOST=127.0.0.1
+# Environment=SITE_PASSWORD=change-me
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

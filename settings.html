@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" href="/favicon.svg" />
+  <link rel="stylesheet" href="/css/main.css" />
+  <script src="/js/common.js"></script>
+  <title>Settings · General Mathematics</title>
+</head>
+<body>
+  <header class="nav" data-nav></header>
+  <main class="container" style="max-width:760px">
+    <h1 class="page-title">Settings</h1>
+    <p class="page-sub">Saved in this browser only.</p>
+
+    <section class="card">
+      <h2>Search engine</h2>
+      <p class="hint">Used when you type something that isn't a URL.</p>
+      <select class="input" id="engine">
+        <option value="https://duckduckgo.com/?q=%s">DuckDuckGo</option>
+        <option value="https://www.google.com/search?q=%s">Google</option>
+        <option value="https://www.bing.com/search?q=%s">Bing</option>
+        <option value="https://search.brave.com/search?q=%s">Brave Search</option>
+        <option value="https://www.startpage.com/do/search?q=%s">Startpage</option>
+      </select>
+    </section>
+
+    <section class="card">
+      <h2>Tab cloak</h2>
+      <p class="hint">Changes the title and icon shown on this site's browser tab.</p>
+      <div class="row">
+        <div class="field"><label for="ctitle">Tab title</label><input class="input" id="ctitle" placeholder="(default)" /></div>
+        <div class="field"><label for="cicon">Icon URL</label><input class="input" id="cicon" placeholder="https://…/favicon.ico" /></div>
+      </div>
+      <div class="presets" id="presets"></div>
+      <div class="row" style="margin-top:14px"><button class="btn primary small" id="csave">Save</button><button class="btn small" id="creset">Reset</button></div>
+    </section>
+
+    <section class="card">
+      <h2>about:blank &amp; panic key</h2>
+      <p class="hint">about:blank opens the site inside a blank tab so it doesn't appear as a normal page in your history. The panic key instantly sends the tab to the page below.</p>
+      <div class="switch">
+        <div class="label"><strong>Auto-open in about:blank</strong><span>Launches on your first click on any page (browsers block popups without a click).</span></div>
+        <label class="toggle"><input type="checkbox" id="autoblank" /><span class="slider"></span></label>
+      </div>
+      <div class="row" style="margin:10px 0 16px"><button class="btn small" id="blanknow">Open in about:blank now</button></div>
+      <div class="row">
+        <div class="field" style="max-width:160px"><label for="pkey">Panic key</label><input class="input" id="pkey" readonly placeholder="Click, then press a key" /></div>
+        <div class="field"><label for="purl">Panic page</label><input class="input" id="purl" /></div>
+      </div>
+      <div class="row" style="margin-top:14px"><button class="btn primary small" id="psave">Save</button><button class="btn small" id="pclear">Disable panic key</button></div>
+    </section>
+
+    <section class="card">
+      <h2>Data</h2>
+      <p class="hint">Reset settings and shortcuts, or reset the proxy engine if pages stop loading after an update.</p>
+      <div class="row">
+        <button class="btn small" id="resetproxy">Reset proxy engine</button>
+        <button class="btn small danger" id="resetall">Reset everything</button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const S = GM.Settings, $ = (id) => document.getElementById(id);
+
+    // search engine
+    $("engine").value = S.get("engine");
+    if (!$("engine").value) $("engine").selectedIndex = 0;
+    $("engine").onchange = () => { S.set("engine", $("engine").value); GM.toast("Search engine saved"); };
+
+    // tab cloak
+    const fav = (d) => "https://www.google.com/s2/favicons?sz=64&domain=" + d;
+    const PRESETS = [
+      { label: "Google Classroom", title: "Home", icon: fav("classroom.google.com") },
+      { label: "Google Docs", title: "Google Docs", icon: fav("docs.google.com") },
+      { label: "Google Drive", title: "My Drive - Google Drive", icon: fav("drive.google.com") },
+      { label: "Canvas", title: "Dashboard", icon: fav("instructure.com") },
+      { label: "Khan Academy", title: "Khan Academy", icon: fav("khanacademy.org") },
+      { label: "Desmos", title: "Desmos | Graphing Calculator", icon: fav("desmos.com") },
+      { label: "Wikipedia", title: "Wikipedia", icon: fav("wikipedia.org") },
+    ];
+    $("ctitle").value = S.get("cloakTitle");
+    $("cicon").value = S.get("cloakIcon");
+    $("presets").innerHTML = PRESETS.map((p, i) => `<button class="chip" data-i="${i}"><img src="${p.icon}" width="16" height="16" alt="">${p.label}</button>`).join("");
+    $("presets").onclick = (e) => {
+      const b = e.target.closest("[data-i]"); if (!b) return;
+      const p = PRESETS[b.dataset.i];
+      $("ctitle").value = p.title; $("cicon").value = p.icon;
+      saveCloak();
+    };
+    function saveCloak() {
+      S.set("cloakTitle", $("ctitle").value.trim());
+      S.set("cloakIcon", $("cicon").value.trim());
+      GM.applyCloak(); GM.toast("Tab cloak saved");
+    }
+    $("csave").onclick = saveCloak;
+    $("creset").onclick = () => { S.set("cloakTitle", ""); S.set("cloakIcon", ""); location.reload(); };
+
+    // about:blank + panic
+    $("autoblank").checked = S.get("autoBlank");
+    $("autoblank").onchange = () => { S.set("autoBlank", $("autoblank").checked); GM.toast($("autoblank").checked ? "Auto about:blank on" : "Auto about:blank off"); };
+    $("blanknow").onclick = () => { if (!GM.openBlank("/")) GM.toast("Popup blocked, or already inside about:blank"); };
+    $("pkey").value = S.get("panicKey");
+    $("purl").value = S.get("panicUrl");
+    $("pkey").addEventListener("keydown", (e) => { e.preventDefault(); e.stopPropagation(); if (e.key.length === 1 || /^F\d+$|^Escape$/.test(e.key)) $("pkey").value = e.key; });
+    $("psave").onclick = () => {
+      let u = $("purl").value.trim();
+      if (u && !/^https?:\/\//i.test(u)) u = "https://" + u;
+      S.set("panicKey", $("pkey").value); S.set("panicUrl", u); $("purl").value = u;
+      GM.toast("Panic settings saved");
+    };
+    $("pclear").onclick = () => { S.set("panicKey", ""); $("pkey").value = ""; GM.toast("Panic key disabled"); };
+
+    // data
+    $("resetproxy").onclick = async () => {
+      const regs = await navigator.serviceWorker?.getRegistrations?.() || [];
+      await Promise.all(regs.map((r) => r.unregister()));
+      if (window.caches) for (const k of await caches.keys()) await caches.delete(k);
+      GM.toast("Proxy engine reset");
+    };
+    $("resetall").onclick = async () => {
+      if (!confirm("Reset all settings and custom shortcuts?")) return;
+      S.reset(); await $("resetproxy").onclick(); location.reload();
+    };
+  </script>
+</body>
+</html>
